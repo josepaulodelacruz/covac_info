@@ -1,4 +1,4 @@
-package com.example.covac_information
+package com.jeyps.covac_information
 
 import io.flutter.embedding.android.FlutterActivity
 
