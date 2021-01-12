@@ -1,8 +1,63 @@
+import 'package:covac_information/services/AdmobServices.dart';
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
+  @override
+  createState () => MainScreenState();
+}
+
+class MainScreenState extends State<MainScreen>{
+  MobileAdTargetingInfo targetingInfo;
+  InterstitialAd myBanner;
+  bool disposed = false;
+
+  InterstitialAd buildBannerAd() {
+    return InterstitialAd(
+        adUnitId: AdmobServices.interstitial(),
+        listener: (MobileAdEvent event) {
+          if(event == MobileAdEvent.loaded) {
+            if(disposed) {
+              myBanner.dispose();
+            } else {
+              myBanner..show(
+                  anchorType: AnchorType.bottom,
+                  anchorOffset: MediaQuery.of(context).size.height * 0.12
+              );
+            }
+          }
+        }
+    );
+  }
+
+  void displayBanner() async {
+    disposed = false;
+    if(myBanner == null) myBanner = buildBannerAd();
+    myBanner.load();
+  }
+
+  void hideBanner() async {
+    await myBanner?.dispose();
+    disposed = true;
+    myBanner = null;
+  }
+
+  @override
+  void initState () {
+    super.initState();
+    FirebaseAdMob.instance.initialize(appId: AdmobServices.appId());
+    myBanner =  buildBannerAd()..load();
+  }
+
+  void dispose() {
+    myBanner?.dispose();
+    hideBanner();
+    super.dispose();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

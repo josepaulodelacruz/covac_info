@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:covac_information/services/AdmobServices.dart';
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:flare_flutter/flare_actor.dart';
 import 'package:confetti/confetti.dart';
@@ -11,21 +13,59 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>{
+  MobileAdTargetingInfo targetingInfo;
+  BannerAd myBanner;
   ConfettiController _controllerCenter;
   bool play = false;
   bool vaccinated = false;
+  bool disposed = false;
   Timer timer;
+
+  BannerAd buildBannerAd() {
+    return BannerAd(
+        adUnitId: AdmobServices.banner(),
+        size: AdSize.banner,
+        listener: (MobileAdEvent event) {
+          if(event == MobileAdEvent.loaded) {
+            if(disposed) {
+              myBanner.dispose();
+            } else {
+              myBanner..show(
+                  anchorType: AnchorType.bottom,
+                  anchorOffset: MediaQuery.of(context).size.height * 0.12
+              );
+            }
+          }
+        }
+    );
+  }
 
   @override
   void initState () {
     _controllerCenter =
         ConfettiController(duration: const Duration(seconds: 10));
+    FirebaseAdMob.instance.initialize(appId: AdmobServices.appId());
+    myBanner =  buildBannerAd()..load();
+  }
+
+  void displayBanner() async {
+    disposed = false;
+    if(myBanner == null) myBanner = buildBannerAd();
+    myBanner.load();
+  }
+
+  void hideBanner() async {
+    await myBanner?.dispose();
+    disposed = true;
+    myBanner = null;
   }
 
   @override
   void dispose() {
     _controllerCenter.dispose();
     timer.cancel();
+    myBanner?.dispose();
+    hideBanner();
     super.dispose();
   }
 
@@ -75,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen>{
       ),
       floatingActionButton: !vaccinated ? FloatingActionButton(
         onPressed: () {
+          hideBanner();
           setState(() {
             play = true;
             timer = Timer.periodic(Duration(seconds: 8), (timer) {
